@@ -1,0 +1,7 @@
+langgraph
+groq
+streamlit
+python-dotenv
+langchain-groq
+langgraph
+langgraph-cli[inmem]
