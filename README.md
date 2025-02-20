@@ -27,12 +27,12 @@
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/ai-blog-wizard.git
+   git clone https://github.com/Rizwankaka/langgraph-blog-generator.git
    ```
 
-```
-cd ai-blog-wizard
-```
+   ```
+   cd langgraphBlogPost.py
+   ```
 
 2. Install dependencies:
 
@@ -49,7 +49,7 @@ cd ai-blog-wizard
 
 4. Run the application:
    ```
-   streamlit run ai_blog_generator/langgraphBlogPost.py
+   streamlit run langgraphBlogPost.py
    ```
 
 ## 🎮 Usage
