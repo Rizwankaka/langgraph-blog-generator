@@ -18,7 +18,7 @@
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.12
 - Groq API key
 - Streamlit
 - LangGraph
