@@ -1,6 +1,6 @@
 # ✨ AI Blog Wizard
 
-![Snapshot of Application]()(ai_blog_generator\app.png)
+![Snapshot of Application](app.png)
 
 > Transform your ideas into engaging blog posts with the power of AI! 🚀
 
