@@ -10,16 +10,98 @@ from datetime import datetime
 
 load_dotenv()
 
-# Configure Groq client
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-# Configure Groq client
-client = groq.Groq(api_key=GROQ_API_KEY)
 # Define state structure
 class BlogState(TypedDict):
     keyword: str
     titles: List[str]
     selected_title: Optional[str]
     blog_content: Optional[str]
+
+# Move GROQ client initialization after getting API key from user
+
+# Set page config and initialize app
+st.set_page_config(
+    page_title="AI Blog Wizard ✨",
+    page_icon="📝",
+    layout="wide"
+)
+
+# Custom CSS
+st.markdown("""
+    <style>
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .main-header {
+        text-align: center;
+        color: #1E88E5;
+        padding: 2rem 0;
+    }
+    .stat-box {
+        background-color: #f0f2f6;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 10px 0;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Initialize session state for API key
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = os.getenv("GROQ_API_KEY", "")
+
+if 'blog_state' not in st.session_state:
+    st.session_state.blog_state = {
+        "keyword": "",
+        "titles": [],
+        "selected_title": None,
+        "blog_content": None,
+        "generation_history": [],
+        "word_count": 0,
+        "last_generated": None
+    }
+
+# Sidebar for API key and settings
+with st.sidebar:
+    st.header("🔑 API Configuration")
+    api_key = st.text_input(
+        "Enter your Groq API Key:",
+        value=st.session_state.api_key,
+        type="password",
+        help="Get your API key from https://console.groq.com"
+    )
+    
+    # Update API key in session state
+    if api_key != st.session_state.api_key:
+        st.session_state.api_key = api_key
+    
+    # Show API status
+    if st.session_state.api_key:
+        st.success("✅ API Key set")
+    else:
+        st.error("⚠️ Please enter your Groq API Key")
+    
+    st.markdown("---")
+    
+    # Existing sidebar settings
+    st.header("⚙️ Settings")
+    tone_options = ["Professional", "Casual", "Technical", "Conversational"]
+    selected_tone = st.selectbox("Writing Tone", tone_options)
+    
+    target_audience = st.selectbox("Target Audience", 
+        ["General", "Beginners", "Experts", "Students", "Professionals"])
+    
+    word_count = st.slider("Target Word Count", 500, 2000, 1500, 100)
+    
+    st.header("📊 Statistics")
+    if st.session_state.blog_state["last_generated"]:
+        st.info(f"Last Generated: {st.session_state.blog_state['last_generated']}")
+    if st.session_state.blog_state["word_count"]:
+        st.info(f"Word Count: {st.session_state.blog_state['word_count']}")
+
+# Initialize Groq client with current API key
+client = groq.Groq(api_key=st.session_state.api_key)
 
 # Initialize LangGraph workflow
 def create_workflow():
@@ -88,160 +170,103 @@ def create_workflow():
 
     return workflow.compile()
 
-# Set page config
-st.set_page_config(
-    page_title="AI Blog Wizard ✨",
-    page_icon="📝",
-    layout="wide"
-)
-
-# Initialize the app
-app = create_workflow()
-
-# Custom CSS
-st.markdown("""
-    <style>
-    .stApp {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    .main-header {
-        text-align: center;
-        color: #1E88E5;
-        padding: 2rem 0;
-    }
-    .stat-box {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 10px 0;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Enhanced UI
-st.markdown("<h1 class='main-header'>✨ AI Blog Wizard</h1>", unsafe_allow_html=True)
-
-# Initialize session state with more features
-if 'blog_state' not in st.session_state:
-    st.session_state.blog_state = {
-        "keyword": "",
-        "titles": [],
-        "selected_title": None,
-        "blog_content": None,
-        "generation_history": [],
-        "word_count": 0,
-        "last_generated": None
-    }
-
-# Sidebar for settings and history
-with st.sidebar:
-    st.header("⚙️ Settings")
-    tone_options = ["Professional", "Casual", "Technical", "Conversational"]
-    selected_tone = st.selectbox("Writing Tone", tone_options)
-    
-    target_audience = st.selectbox("Target Audience", 
-        ["General", "Beginners", "Experts", "Students", "Professionals"])
-    
-    word_count = st.slider("Target Word Count", 500, 2000, 1500, 100)
-    
-    st.header("📊 Statistics")
-    if st.session_state.blog_state["last_generated"]:
-        st.info(f"Last Generated: {st.session_state.blog_state['last_generated']}")
-    if st.session_state.blog_state["word_count"]:
-        st.info(f"Word Count: {st.session_state.blog_state['word_count']}")
-
 # Main content area
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    keyword = st.text_input("🎯 Enter your blog topic keyword:", 
-                           value=st.session_state.blog_state["keyword"],
-                           placeholder="e.g., Artificial Intelligence")
-
-with col2:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🎨 Generate Titles", use_container_width=True):
-        if keyword.strip():
-            with st.spinner("🪄 Crafting engaging titles..."):
-                new_state = app.invoke({
-                    "keyword": keyword.strip(),
-                    "titles": [],
-                    "selected_title": None,
-                    "blog_content": None
-                })
-                st.session_state.blog_state.update(new_state)
-                st.session_state.blog_state["last_generated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-# Display Titles with enhanced UI
-if st.session_state.blog_state["titles"]:
-    st.markdown("### 📑 Choose Your Title")
-    with st.container():
-        selected_idx = st.radio(
-            "Select the most appealing title:",
-            options=range(len(st.session_state.blog_state["titles"])),
-            format_func=lambda x: f"✨ {st.session_state.blog_state['titles'][x]}",
-            horizontal=True
-        )
-        st.session_state.blog_state["selected_title"] = st.session_state.blog_state["titles"][selected_idx]
-
-# Generate Content with Progress
-if st.session_state.blog_state["selected_title"] and not st.session_state.blog_state["blog_content"]:
-    if st.button("📝 Generate Full Blog Post", use_container_width=True):
-        with st.spinner("🚀 Creating your masterpiece..."):
-            progress_bar = st.progress(0)
-            for i in range(100):
-                time.sleep(0.05)
-                progress_bar.progress(i + 1)
-            final_state = app.invoke(st.session_state.blog_state)
-            st.session_state.blog_state.update(final_state)
-            st.session_state.blog_state["word_count"] = len(st.session_state.blog_state["blog_content"].split())
-            progress_bar.empty()
-
-# Display Content with enhanced formatting
-if st.session_state.blog_state["blog_content"]:
-    st.markdown("---")
-    st.markdown(f"## 📖 {st.session_state.blog_state['selected_title']}")
+if not st.session_state.api_key:
+    st.warning("⚠️ Please enter your Groq API Key in the sidebar to continue")
+else:
+    # Initialize the app only if API key is present
+    app = create_workflow()
     
-    # Add tabs for different views
-    tab1, tab2 = st.tabs(["📄 Preview", "🔍 Raw Markdown"])
+    col1, col2 = st.columns([2, 1])
     
-    with tab1:
-        st.markdown(st.session_state.blog_state["blog_content"])
-    
-    with tab2:
-        st.text_area("Raw Markdown", st.session_state.blog_state["blog_content"], height=300)
-    
-    # Export options
-    col1, col2 = st.columns(2)
     with col1:
-        st.download_button(
-            "📥 Download as Markdown",
-            st.session_state.blog_state["blog_content"],
-            file_name=f"{st.session_state.blog_state['selected_title']}.md",
-            use_container_width=True
-        )
-    
-    with col2:
-        st.download_button(
-            "📄 Download as Text",
-            st.session_state.blog_state["blog_content"],
-            file_name=f"{st.session_state.blog_state['selected_title']}.txt",
-            use_container_width=True
-        )
+        keyword = st.text_input("🎯 Enter your blog topic keyword:", 
+                               value=st.session_state.blog_state["keyword"],
+                               placeholder="e.g., Artificial Intelligence")
 
-# Footer with reset button
-st.markdown("---")
-col1, col2, col3 = st.columns([1, 1, 1])
-with col2:
-    if st.button("🔄 Start Fresh", use_container_width=True):
-        st.session_state.blog_state = {
-            "keyword": "",
-            "titles": [],
-            "selected_title": None,
-            "blog_content": None,
-            "generation_history": [],
-            "word_count": 0,
-            "last_generated": None
-        }
-        st.rerun()
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🎨 Generate Titles", use_container_width=True):
+            if keyword.strip():
+                with st.spinner("🪄 Crafting engaging titles..."):
+                    new_state = app.invoke({
+                        "keyword": keyword.strip(),
+                        "titles": [],
+                        "selected_title": None,
+                        "blog_content": None
+                    })
+                    st.session_state.blog_state.update(new_state)
+                    st.session_state.blog_state["last_generated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    # Display Titles with enhanced UI
+    if st.session_state.blog_state["titles"]:
+        st.markdown("### 📑 Choose Your Title")
+        with st.container():
+            selected_idx = st.radio(
+                "Select the most appealing title:",
+                options=range(len(st.session_state.blog_state["titles"])),
+                format_func=lambda x: f"✨ {st.session_state.blog_state['titles'][x]}",
+                horizontal=True
+            )
+            st.session_state.blog_state["selected_title"] = st.session_state.blog_state["titles"][selected_idx]
+
+    # Generate Content with Progress
+    if st.session_state.blog_state["selected_title"] and not st.session_state.blog_state["blog_content"]:
+        if st.button("📝 Generate Full Blog Post", use_container_width=True):
+            with st.spinner("🚀 Creating your masterpiece..."):
+                progress_bar = st.progress(0)
+                for i in range(100):
+                    time.sleep(0.05)
+                    progress_bar.progress(i + 1)
+                final_state = app.invoke(st.session_state.blog_state)
+                st.session_state.blog_state.update(final_state)
+                st.session_state.blog_state["word_count"] = len(st.session_state.blog_state["blog_content"].split())
+                progress_bar.empty()
+
+    # Display Content with enhanced formatting
+    if st.session_state.blog_state["blog_content"]:
+        st.markdown("---")
+        st.markdown(f"## 📖 {st.session_state.blog_state['selected_title']}")
+        
+        # Add tabs for different views
+        tab1, tab2 = st.tabs(["📄 Preview", "🔍 Raw Markdown"])
+        
+        with tab1:
+            st.markdown(st.session_state.blog_state["blog_content"])
+        
+        with tab2:
+            st.text_area("Raw Markdown", st.session_state.blog_state["blog_content"], height=300)
+        
+        # Export options
+        col1, col2 = st.columns(2)
+        with col1:
+            st.download_button(
+                "📥 Download as Markdown",
+                st.session_state.blog_state["blog_content"],
+                file_name=f"{st.session_state.blog_state['selected_title']}.md",
+                use_container_width=True
+            )
+        
+        with col2:
+            st.download_button(
+                "📄 Download as Text",
+                st.session_state.blog_state["blog_content"],
+                file_name=f"{st.session_state.blog_state['selected_title']}.txt",
+                use_container_width=True
+            )
+
+    # Footer with reset button
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("🔄 Start Fresh", use_container_width=True):
+            st.session_state.blog_state = {
+                "keyword": "",
+                "titles": [],
+                "selected_title": None,
+                "blog_content": None,
+                "generation_history": [],
+                "word_count": 0,
+                "last_generated": None
+            }
+            st.rerun()
