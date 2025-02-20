@@ -42,7 +42,7 @@
 3. Set up your environment variables:
 
    ```
-   cp .env.example .env
+   .env
    ```
 
 # Add your Groq API key to .env file
